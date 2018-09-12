@@ -5,6 +5,7 @@ from shutil import copyfile
 from xlutils.copy import copy
 import datetime
 import os
+import re
 
 def csv_from_excel(wbName,sheetName):
     wb = xlrd.open_workbook(wbName)
@@ -31,12 +32,17 @@ def update_date_columns(wbName,sheetName):
         elif cell.value == "field_plan_availability_end":
             endColIdx = colidx
             planEndArray = sh.col_values(colidx, 1)
-
-    for start in planStartArray:
-        if start != '':
-            startDate = datetime.datetime(*xlrd.xldate_as_tuple(start, rb.datemode))
-            startDate = startDate + datetime.timedelta(0,1)
-            startDateTimezone = startDate.strftime('%m/%d/%Y %I:%M:%S')
+    diffStart = input('Use different start date? (y/n) ')
+    if diffStart == 'y':
+        newStartDate = input('Enter different start date (mm/dd/yyy)')
+        newStartDate = newStartDate + datetime.timedelta(0,1)
+        startDateTimezone = newStartDate.strftime('%m/%d/%Y %I:%M:%S')
+    else:
+        for start in planStartArray:
+            if start != '':
+                startDate = datetime.datetime(*xlrd.xldate_as_tuple(start, rb.datemode))
+                startDate = startDate + datetime.timedelta(0,1)
+                startDateTimezone = startDate.strftime('%m/%d/%Y %I:%M:%S')
 
     for end in planEndArray:
         if end != '':
@@ -66,7 +72,7 @@ def update_service_location_columns(wbName,sheetName):
     for colidx, cell in enumerate(headerRow):
         if cell.value == "field_plan_service_area":
             for row_index in range(1, sh.nrows):
-                service_area = zipCodeList[row_index - 1].replace(' ','')
+                service_area = zipCodeList[row_index - 1].replace(', ',',')
                 sheet.write(row_index, colidx, service_area)
     wb.save(wbName)
 
@@ -79,11 +85,25 @@ def delete_files(XWbName,copyFileName):
 
 def get_template_header(planType):
     tenant = input('Which tenant is this for? (AK,FLB,FHCP,MN,SC,TN,WA) ')
-    tenantTemplateName = tenant + ' - MedicareFeedTemplate.xlsx'
+    if os.path.isfile(tenant + ' - MedicareFeedTemplate.xlsx'):
+        tenantTemplateName = tenant + ' - MedicareFeedTemplate.xlsx'
+    else:
+        tenantTemplateName = 'MedicareFeedTemplate.xlsx'
     templateCsv = xlrd.open_workbook(tenantTemplateName)
     templateSheet = templateCsv.sheet_by_name(planType)
     templateData = [templateSheet.cell_value(row, 0) for row in range(0,templateSheet.nrows)]
     return templateData
+
+def create_all_documents_column(wbName,sheetName):
+    rb = xlrd.open_workbook(wbName)
+    sh = rb.sheet_by_name(sheetName)
+    row = sh.row(0)
+    regex = re.compile('field_doc_.')
+    documentIdx = []
+    for colidx, cell in enumerate(row):
+        if re.match(regex, cell.value):
+            documentIdx.append(colidx)
+    print(documentIdx)
 
 # get the title of the file that needs to be copied
 fileName = input("Enter file to be coverted to plan csv: ")
@@ -107,10 +127,8 @@ newSheet = finalWb.add_sheet(planType)
 colToSkip = int(input("How many columns should be skipped? "))
 if colToSkip == 0:
     colToSkip = 1
-if rowsToSkip == sheet.ncols:
-    num_cols = sheet.ncols
-else:
-    num_cols = sheet.ncols
+
+num_cols = sheet.ncols
 
 for row_idx in range(rowsToSkip, sheet.nrows):
     for col_idx in range(colToSkip, num_cols):
@@ -128,5 +146,6 @@ finalWbFileName = planType + ' - ' + fileName
 finalWb.save(finalWbFileName)
 update_date_columns(finalWbFileName, planType)
 update_service_location_columns(finalWbFileName, planType)
+create_all_documents_column(finalWbFileName, planType)
 csv_from_excel(finalWbFileName, planType)
 delete_files(finalWbFileName, copyFileName)
