@@ -23,7 +23,6 @@ def csv_from_excel(wbName,sheetName):
 def update_date_columns(wbName,sheetName):
     rb = xlrd.open_workbook(wbName)
     sh = rb.sheet_by_name(sheetName)
-    timezone = input("What timezone is the tenant in? (EST,PST,CST) ")
     row = sh.row(0)
     for colidx, cell in enumerate(row):
         if cell.value == "field_plan_availability_start" :
@@ -53,10 +52,11 @@ def update_date_columns(wbName,sheetName):
     wb = copy(rb)
     sheet = wb.get_sheet(0)
     for row_index in range(1, sh.nrows):
-        sheet.write(row_index, startColIdx, startDateTimezone + ' ' + timezone)
-        sheet.write(row_index, endColIdx, endDateTimezone + ' ' + timezone)    
+        sheet.write(row_index, startColIdx, startDateTimezone)
+        sheet.write(row_index, endColIdx, endDateTimezone)    
     wb.save(wbName)
 
+#moves all of the service areas from the zip code column to the service area column
 def update_service_location_columns(wbName,sheetName):
     rb = xlrd.open_workbook(wbName)
     sh = rb.sheet_by_name(sheetName)
@@ -64,7 +64,7 @@ def update_service_location_columns(wbName,sheetName):
     zipCodeList = []
     for colidx, cell in enumerate(row):
         if cell.value == "field_plan_zipcode" :
-            zipCodeColIdx = colidx
+            #zipCodeColIdx = colidx
             zipCodeList = sh.col_values(colidx, 1)
     wb = copy(rb)
     sheet = wb.get_sheet(0)
@@ -83,8 +83,10 @@ def delete_files(XWbName,copyFileName):
     if os.path.isfile(copyFileName):
         os.remove(copyFileName)
 
+#Get the header from a template.
 def get_template_header(planType):
     tenant = input('Which tenant is this for? (AK,FLB,FHCP,MN,SC,TN,WA) ')
+    #if the tenant has a specific template file made use that, else use the default
     if os.path.isfile(tenant + ' - MedicareFeedTemplate.xlsx'):
         tenantTemplateName = tenant + ' - MedicareFeedTemplate.xlsx'
     else:
