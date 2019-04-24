@@ -33,9 +33,7 @@ def update_date_columns(wbName,sheetName):
             planEndArray = sh.col_values(colidx, 1)
     diffStart = input('Use different start date? (y/n) ')
     if diffStart == 'y':
-        newStartDate = input('Enter different start date (mm/dd/yyy)')
-        newStartDate = newStartDate + datetime.timedelta(0,1)
-        startDateTimezone = newStartDate.strftime('%m/%d/%Y %I:%M:%S')
+        startDateTimezone = input('Enter different start date (mm/dd/yyy) ')
     else:
         for start in planStartArray:
             if start != '':
@@ -96,6 +94,7 @@ def get_template_header(planType):
     templateData = [templateSheet.cell_value(row, 0) for row in range(0,templateSheet.nrows)]
     return templateData
 
+#Creates an all documents column at the end of the csv as a colmination of all of the document fields.
 def create_all_documents_column(wbName,sheetName):
     rb = xlrd.open_workbook(wbName)
     sh = rb.sheet_by_name(sheetName)
@@ -107,14 +106,16 @@ def create_all_documents_column(wbName,sheetName):
             documentIdx.append(colidx)
     print(documentIdx)
 
-# get the title of the file that needs to be copied
-fileName = input("Enter file to be coverted to plan csv: ")
-if ".xlsx" not in fileName:
-    fileName = fileName + '.xlsx'
+def open_excel_file():
+    # get the title of the file that needs to be copied
+    fileName = input("Enter file to be coverted to plan csv: ")
+    if ".xlsx" not in fileName:
+        fileName = fileName + '.xlsx'
+    return fileName
 
+fileName = open_excel_file()
 planType = input("What plan type is to be converted? (Worksheet name) ")
 copyFileName = 'Copy - ' + fileName
-
 # copy the file in case anything happens to our original. 
 copyfile(fileName,copyFileName)
 openCopy = xlrd.open_workbook(copyFileName)
